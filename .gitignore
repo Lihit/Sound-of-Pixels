@@ -2,5 +2,6 @@
 *.log
 __pycache__
 
-ckpt/
-data/
+*.mp4
+*.mp3
+*.jpg
