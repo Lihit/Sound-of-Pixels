@@ -49,7 +49,7 @@ class ArgParser(object):
         # Data related arguments
         parser.add_argument('--num_gpus', default=1, type=int,
                             help='number of gpus to use')
-        parser.add_argument('--batch_size_per_gpu', default=32, type=int,
+        parser.add_argument('--batch_size_per_gpu', default=16, type=int,
                             help='input batch size')
         parser.add_argument('--workers', default=32, type=int,
                             help='number of data loading workers')

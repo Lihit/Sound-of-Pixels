@@ -2,7 +2,7 @@
 
 OPTS=""
 OPTS+="--mode eval "
-OPTS+="--id MUSIC-2mix-LogFreq-resnet18dilated-unet7-linear-frames3stride24-maxpool-binary-weightedLoss-channels32-epoch100-step40_80 "
+OPTS+="--id pretrained_model "
 OPTS+="--list_val data/val.csv "
 
 # Models
@@ -12,6 +12,7 @@ OPTS+="--arch_frame resnet18dilated "
 OPTS+="--img_pool maxpool "
 OPTS+="--num_channels 32 "
 # binary mask, BCE loss, weighted loss
+OPTS+="--batch_size_per_gpu 1 "
 OPTS+="--binary_mask 1 "
 OPTS+="--loss bce "
 OPTS+="--weighted_loss 1 "

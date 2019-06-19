@@ -4,4 +4,5 @@ python download_video_audio.py
 # extract videos
 python extract_videos.py
 # create index files
-python create_index_files.py
+cd ..
+python data/create_index_files.py

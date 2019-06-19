@@ -16,10 +16,11 @@ from arguments import ArgParser
 from dataset import MUSICMixDataset
 from models import ModelBuilder, activate
 from utils import AverageMeter, \
-    recover_rgb, magnitude2heatmap,\
+    recover_rgb, magnitude2heatmap, \
     istft_reconstruction, warpgrid, \
     combine_video_audio, save_video, makedirs
 from viz import plot_loss_metrics, HTMLVisualizer
+import imageio
 
 
 # Network wrapper, defines forward pass
@@ -88,8 +89,8 @@ class NetWrapper(torch.nn.Module):
         err = self.crit(pred_masks, gt_masks, weight).reshape(1)
 
         return err, \
-            {'pred_masks': pred_masks, 'gt_masks': gt_masks,
-             'mag_mix': mag_mix, 'mags': mags, 'weight': weight}
+               {'pred_masks': pred_masks, 'gt_masks': gt_masks,
+                'mag_mix': mag_mix, 'mags': mags, 'weight': weight}
 
 
 # Calculate metrics
@@ -114,7 +115,7 @@ def calc_metrics(batch_data, outputs, args):
     for n in range(N):
         if args.log_freq:
             grid_unwarp = torch.from_numpy(
-                warpgrid(B, args.stft_frame//2+1, pred_masks_[0].size(3), warp=False)).to(args.device)
+                warpgrid(B, args.stft_frame // 2 + 1, pred_masks_[0].size(3), warp=False)).to(args.device)
             pred_masks_linear[n] = F.grid_sample(pred_masks_[n], grid_unwarp)
         else:
             pred_masks_linear[n] = pred_masks_[n]
@@ -190,7 +191,7 @@ def output_visuals(vis_rows, batch_data, outputs, args):
     for n in range(N):
         if args.log_freq:
             grid_unwarp = torch.from_numpy(
-                warpgrid(B, args.stft_frame//2+1, gt_masks_[0].size(3), warp=False)).to(args.device)
+                warpgrid(B, args.stft_frame // 2 + 1, gt_masks_[0].size(3), warp=False)).to(args.device)
             pred_masks_linear[n] = F.grid_sample(pred_masks_[n], grid_unwarp)
             gt_masks_linear[n] = F.grid_sample(gt_masks_[n], grid_unwarp)
         else:
@@ -231,8 +232,8 @@ def output_visuals(vis_rows, batch_data, outputs, args):
         filename_mixwav = os.path.join(prefix, 'mix.wav')
         filename_mixmag = os.path.join(prefix, 'mix.jpg')
         filename_weight = os.path.join(prefix, 'weight.jpg')
-        imsave(os.path.join(args.vis, filename_mixmag), mix_amp[::-1, :, :])
-        imsave(os.path.join(args.vis, filename_weight), weight[::-1, :])
+        imageio.imwrite(os.path.join(args.vis, filename_mixmag), mix_amp[::-1, :, :])
+        imageio.imwrite(os.path.join(args.vis, filename_weight), weight[::-1, :])
         wavfile.write(os.path.join(args.vis, filename_mixwav), args.audRate, mix_wav)
         row_elements += [{'text': prefix}, {'image': filename_mixmag, 'audio': filename_mixwav}]
 
@@ -246,35 +247,35 @@ def output_visuals(vis_rows, batch_data, outputs, args):
             preds_wav[n] = istft_reconstruction(pred_mag, phase_mix[j, 0], hop_length=args.stft_hop)
 
             # output masks
-            filename_gtmask = os.path.join(prefix, 'gtmask{}.jpg'.format(n+1))
-            filename_predmask = os.path.join(prefix, 'predmask{}.jpg'.format(n+1))
+            filename_gtmask = os.path.join(prefix, 'gtmask{}.jpg'.format(n + 1))
+            filename_predmask = os.path.join(prefix, 'predmask{}.jpg'.format(n + 1))
             gt_mask = (np.clip(gt_masks_[n][j, 0], 0, 1) * 255).astype(np.uint8)
             pred_mask = (np.clip(pred_masks_[n][j, 0], 0, 1) * 255).astype(np.uint8)
-            imsave(os.path.join(args.vis, filename_gtmask), gt_mask[::-1, :])
-            imsave(os.path.join(args.vis, filename_predmask), pred_mask[::-1, :])
+            imageio.imwrite(os.path.join(args.vis, filename_gtmask), gt_mask[::-1, :])
+            imageio.imwrite(os.path.join(args.vis, filename_predmask), pred_mask[::-1, :])
 
             # ouput spectrogram (log of magnitude, show colormap)
-            filename_gtmag = os.path.join(prefix, 'gtamp{}.jpg'.format(n+1))
-            filename_predmag = os.path.join(prefix, 'predamp{}.jpg'.format(n+1))
+            filename_gtmag = os.path.join(prefix, 'gtamp{}.jpg'.format(n + 1))
+            filename_predmag = os.path.join(prefix, 'predamp{}.jpg'.format(n + 1))
             gt_mag = magnitude2heatmap(gt_mag)
             pred_mag = magnitude2heatmap(pred_mag)
-            imsave(os.path.join(args.vis, filename_gtmag), gt_mag[::-1, :, :])
-            imsave(os.path.join(args.vis, filename_predmag), pred_mag[::-1, :, :])
+            imageio.imwrite(os.path.join(args.vis, filename_gtmag), gt_mag[::-1, :, :])
+            imageio.imwrite(os.path.join(args.vis, filename_predmag), pred_mag[::-1, :, :])
 
             # output audio
-            filename_gtwav = os.path.join(prefix, 'gt{}.wav'.format(n+1))
-            filename_predwav = os.path.join(prefix, 'pred{}.wav'.format(n+1))
+            filename_gtwav = os.path.join(prefix, 'gt{}.wav'.format(n + 1))
+            filename_predwav = os.path.join(prefix, 'pred{}.wav'.format(n + 1))
             wavfile.write(os.path.join(args.vis, filename_gtwav), args.audRate, gt_wav)
             wavfile.write(os.path.join(args.vis, filename_predwav), args.audRate, preds_wav[n])
 
             # output video
             frames_tensor = [recover_rgb(frames[n][j, :, t]) for t in range(args.num_frames)]
             frames_tensor = np.asarray(frames_tensor)
-            path_video = os.path.join(args.vis, prefix, 'video{}.mp4'.format(n+1))
-            save_video(path_video, frames_tensor, fps=args.frameRate/args.stride_frames)
+            path_video = os.path.join(args.vis, prefix, 'video{}.mp4'.format(n + 1))
+            save_video(path_video, frames_tensor, fps=args.frameRate / args.stride_frames)
 
             # combine gt video and audio
-            filename_av = os.path.join(prefix, 'av{}.mp4'.format(n+1))
+            filename_av = os.path.join(prefix, 'av{}.mp4'.format(n + 1))
             combine_video_audio(
                 path_video,
                 os.path.join(args.vis, filename_gtwav),
@@ -311,7 +312,7 @@ def evaluate(netWrapper, loader, history, epoch, args):
     # initialize HTML header
     visualizer = HTMLVisualizer(os.path.join(args.vis, 'index.html'))
     header = ['Filename', 'Input Mixed Audio']
-    for n in range(1, args.num_mix+1):
+    for n in range(1, args.num_mix + 1):
         header += ['Video {:d}'.format(n),
                    'Predicted Audio {:d}'.format(n),
                    'GroundTruth Audio {}'.format(n),
@@ -494,6 +495,7 @@ def main(args):
     netWrapper = NetWrapper(nets, crit)
     netWrapper = torch.nn.DataParallel(netWrapper, device_ids=range(args.num_gpus))
     netWrapper.to(args.device)
+    # netWrapper.cuda()
 
     # Set up optimizer
     optimizer = create_optimizer(nets, args)
